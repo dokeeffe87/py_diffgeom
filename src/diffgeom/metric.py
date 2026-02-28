@@ -1,9 +1,12 @@
 """Metric tensor and derived geometric quantities."""
 
 from functools import cached_property
+from itertools import product as iproduct
 
 import sympy
 from sympy import Array, Matrix, MutableDenseNDimArray, Symbol, simplify
+
+from diffgeom.tensor import Tensor
 
 
 class MetricTensor:
@@ -105,7 +108,7 @@ class MetricTensor:
                     gamma[lam, mu, nu] = value
                     gamma[lam, nu, mu] = value  # symmetric in mu, nu
 
-        return Array(gamma)
+        return Tensor(Array(gamma), ("down", "down", "down"))
 
     @cached_property
     def christoffel_second_kind(self) -> Array:
@@ -135,7 +138,7 @@ class MetricTensor:
                     gamma[sigma, mu, nu] = value
                     gamma[sigma, nu, mu] = value  # symmetric in mu, nu
 
-        return Array(gamma)
+        return Tensor(Array(gamma), ("up", "down", "down"))
 
     @cached_property
     def riemann_tensor(self) -> Array:
@@ -173,7 +176,7 @@ class MetricTensor:
                         R[rho, sigma, mu, nu] = term
                         R[rho, sigma, nu, mu] = -term
 
-        return Array(R)
+        return Tensor(Array(R), ("up", "down", "down", "down"))
 
     @cached_property
     def ricci_tensor(self) -> Array:
@@ -199,7 +202,7 @@ class MetricTensor:
                 Ric[mu, nu] = value
                 Ric[nu, mu] = value
 
-        return Array(Ric)
+        return Tensor(Array(Ric), ("down", "down"))
 
     @cached_property
     def ricci_scalar(self) -> sympy.Expr:
@@ -234,4 +237,82 @@ class MetricTensor:
                 G[mu, nu] = value
                 G[nu, mu] = value
 
-        return Array(G)
+        return Tensor(Array(G), ("down", "down"))
+
+    def raise_index(self, tensor: Tensor, pos: int) -> Tensor:
+        """Raise an index by contracting with the inverse metric g^{μα}.
+
+        Parameters
+        ----------
+        tensor : Tensor
+            The tensor whose index to raise.
+        pos : int
+            Which index to raise (0-based). Must currently be ``'down'``.
+
+        Returns
+        -------
+        Tensor
+            A new tensor with the specified index raised to ``'up'``.
+        """
+        r = tensor.rank
+        if not (0 <= pos < r):
+            raise ValueError(f"Index position {pos} out of range for rank-{r} tensor.")
+        if tensor.index_pos[pos] == "up":
+            raise ValueError(f"Index at position {pos} is already 'up'. Cannot raise.")
+
+        n = self.dim
+        g_inv = self.inverse
+        old = tensor.components
+
+        result = MutableDenseNDimArray.zeros(*old.shape)
+        for indices in iproduct(range(n), repeat=r):
+            value = sum(
+                g_inv[indices[pos], alpha]
+                * old[indices[:pos] + (alpha,) + indices[pos + 1 :]]
+                for alpha in range(n)
+            )
+            result[indices] = simplify(value)
+
+        new_pos = list(tensor.index_pos)
+        new_pos[pos] = "up"
+        return Tensor(Array(result), tuple(new_pos))
+
+    def lower_index(self, tensor: Tensor, pos: int) -> Tensor:
+        """Lower an index by contracting with the metric g_{μα}.
+
+        Parameters
+        ----------
+        tensor : Tensor
+            The tensor whose index to lower.
+        pos : int
+            Which index to lower (0-based). Must currently be ``'up'``.
+
+        Returns
+        -------
+        Tensor
+            A new tensor with the specified index lowered to ``'down'``.
+        """
+        r = tensor.rank
+        if not (0 <= pos < r):
+            raise ValueError(f"Index position {pos} out of range for rank-{r} tensor.")
+        if tensor.index_pos[pos] == "down":
+            raise ValueError(
+                f"Index at position {pos} is already 'down'. Cannot lower."
+            )
+
+        n = self.dim
+        g = self._matrix
+        old = tensor.components
+
+        result = MutableDenseNDimArray.zeros(*old.shape)
+        for indices in iproduct(range(n), repeat=r):
+            value = sum(
+                g[indices[pos], alpha]
+                * old[indices[:pos] + (alpha,) + indices[pos + 1 :]]
+                for alpha in range(n)
+            )
+            result[indices] = simplify(value)
+
+        new_pos = list(tensor.index_pos)
+        new_pos[pos] = "down"
+        return Tensor(Array(result), tuple(new_pos))
