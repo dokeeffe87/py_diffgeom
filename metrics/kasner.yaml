@@ -1,0 +1,13 @@
+name: kasner
+coordinates: [t, x, y, z]
+metric:
+  - [-1, 0, 0, 0]
+  - [0, t**(2*p_1), 0, 0]
+  - [0, 0, t**(2*p_2), 0]
+  - [0, 0, 0, t**(2*p_3)]
+compute:
+  - christoffel
+  - riemann: {indices: dddd}
+  - ricci_tensor
+  - ricci_scalar
+  - einstein
