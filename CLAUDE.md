@@ -25,7 +25,7 @@ ruff check src/ tests/
 ## Architecture
 
 - **`src/diffgeom/`** — main package (installed as `diffgeom`)
-- **`src/diffgeom/metric.py`** — `MetricTensor` class: core object that holds a symbolic metric matrix and coordinate symbols. Computes inverse metric, determinant, and Christoffel symbols (both kinds). Dimension is inferred from the coordinates tuple, not hardcoded.
+- **`src/diffgeom/metric.py`** — `MetricTensor` class: core object that holds a symbolic metric matrix and coordinate symbols. Computes inverse metric, determinant, Christoffel symbols (both kinds), Riemann tensor, Ricci tensor, Ricci scalar, and Einstein tensor. Dimension is inferred from the coordinates tuple, not hardcoded.
 - **`tests/`** — pytest tests using known exact solutions (Schwarzschild, 2-sphere, flat 5D Minkowski) to verify computations against textbook results.
 
 ## Design Conventions

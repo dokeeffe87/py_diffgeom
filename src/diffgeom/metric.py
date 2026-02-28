@@ -3,7 +3,7 @@
 from functools import cached_property
 
 import sympy
-from sympy import Array, MutableDenseNDimArray, Matrix, Symbol, simplify
+from sympy import Array, Matrix, MutableDenseNDimArray, Symbol, simplify
 
 
 class MetricTensor:
@@ -136,3 +136,102 @@ class MetricTensor:
                     gamma[sigma, nu, mu] = value  # symmetric in mu, nu
 
         return Array(gamma)
+
+    @cached_property
+    def riemann_tensor(self) -> Array:
+        """Riemann curvature tensor, R^ρ_{σμν}.
+
+        Defined as:
+            R^ρ_{σμν} = ∂_μ Γ^ρ_{νσ} - ∂_ν Γ^ρ_{μσ}
+                        + Γ^ρ_{μλ} Γ^λ_{νσ} - Γ^ρ_{νλ} Γ^λ_{μσ}
+
+        Returns
+        -------
+        sympy.Array
+            A rank-4 array with shape (n, n, n, n).
+            Index order is [rho, sigma, mu, nu].
+        """
+        n = self.dim
+        coords = self._coordinates
+        Gamma = self.christoffel_second_kind
+
+        R = MutableDenseNDimArray.zeros(n, n, n, n)
+        for rho in range(n):
+            for sigma in range(n):
+                for mu in range(n):
+                    for nu in range(mu + 1, n):
+                        term = (
+                            sympy.diff(Gamma[rho, nu, sigma], coords[mu])
+                            - sympy.diff(Gamma[rho, mu, sigma], coords[nu])
+                        )
+                        for lam in range(n):
+                            term += (
+                                Gamma[rho, mu, lam] * Gamma[lam, nu, sigma]
+                                - Gamma[rho, nu, lam] * Gamma[lam, mu, sigma]
+                            )
+                        term = simplify(term)
+                        R[rho, sigma, mu, nu] = term
+                        R[rho, sigma, nu, mu] = -term
+
+        return Array(R)
+
+    @cached_property
+    def ricci_tensor(self) -> Array:
+        """Ricci curvature tensor, R_{μν}.
+
+        Defined as the contraction:
+            R_{μν} = R^λ_{μλν}
+
+        Returns
+        -------
+        sympy.Array
+            A rank-2 array with shape (n, n).
+            Index order is [mu, nu].
+        """
+        n = self.dim
+        Riem = self.riemann_tensor
+
+        Ric = MutableDenseNDimArray.zeros(n, n)
+        for mu in range(n):
+            for nu in range(mu, n):
+                value = sum(Riem[lam, mu, lam, nu] for lam in range(n))
+                value = simplify(value)
+                Ric[mu, nu] = value
+                Ric[nu, mu] = value
+
+        return Array(Ric)
+
+    @cached_property
+    def ricci_scalar(self) -> sympy.Expr:
+        """Ricci scalar curvature, R = g^{μν} R_{μν}."""
+        n = self.dim
+        g_inv = self.inverse
+        Ric = self.ricci_tensor
+
+        R = sum(g_inv[mu, nu] * Ric[mu, nu] for mu in range(n) for nu in range(n))
+        return simplify(R)
+
+    @cached_property
+    def einstein_tensor(self) -> Array:
+        """Einstein tensor, G_{μν} = R_{μν} - ½ g_{μν} R.
+
+        Returns
+        -------
+        sympy.Array
+            A rank-2 array with shape (n, n).
+            Index order is [mu, nu].
+        """
+        n = self.dim
+        g = self._matrix
+        Ric = self.ricci_tensor
+        R = self.ricci_scalar
+
+        G = MutableDenseNDimArray.zeros(n, n)
+        for mu in range(n):
+            for nu in range(mu, n):
+                value = Ric[mu, nu] - sympy.Rational(1, 2) * g[mu, nu] * R
+                value = simplify(value)
+                G[mu, nu] = value
+                G[nu, mu] = value
+
+        return Array(G)
