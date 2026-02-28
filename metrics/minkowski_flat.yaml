@@ -1,0 +1,11 @@
+name: minkowski-5d
+coordinates: [t, x, y, z, w]
+metric:
+  - [-1, 0, 0, 0, 0]
+  - [0, 1, 0, 0, 0]
+  - [0, 0, 1, 0, 0]
+  - [0, 0, 0, 1, 0]
+  - [0, 0, 0, 0, 1]
+compute:
+  - christoffel
+  - ricci_scalar

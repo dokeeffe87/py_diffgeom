@@ -20,13 +20,35 @@ python -m pytest tests/test_metric.py::TestChristoffelSymbols::test_schwarzschil
 
 # Lint
 ruff check src/ tests/
+
+# CLI — compute geometric quantities from a YAML config
+diffgeom compute metrics/schwarzschild.yaml
+diffgeom compute metrics/sphere_2d.yaml --latex
+diffgeom compute metrics/minkowski_flat.yaml --quantities christoffel,ricci_scalar
 ```
+
+## CLI & Config
+
+The `diffgeom compute` command reads a YAML config defining a metric and prints computed geometric quantities. Use `--latex` for LaTeX output. Use `--quantities` (comma-separated) to override the config's compute list.
+
+YAML config format:
+- `name` (optional): label for the metric
+- `coordinates`: list of coordinate symbol names
+- `assumptions` (optional): dict mapping symbol names to SymPy assumption kwargs (e.g. `positive: true`)
+- `metric`: n×n list-of-lists of symbolic expressions
+- `compute` (optional): list from `christoffel`, `riemann`, `ricci_tensor`, `ricci_scalar`, `einstein`. Defaults to all.
+
+Example configs live in `metrics/`.
 
 ## Architecture
 
 - **`src/diffgeom/`** — main package (installed as `diffgeom`)
 - **`src/diffgeom/tensor.py`** — `Tensor` class: lightweight wrapper around `sympy.Array` that tracks index positions (`'up'`/`'down'`). Also provides standalone `trace()` and `contract()` functions for index contraction operations.
 - **`src/diffgeom/metric.py`** — `MetricTensor` class: core object that holds a symbolic metric matrix and coordinate symbols. Computes inverse metric, determinant, Christoffel symbols (both kinds), Riemann tensor, Ricci tensor, Ricci scalar, and Einstein tensor — all returned as `Tensor` objects with index metadata. Provides `raise_index()` and `lower_index()` methods for index manipulation.
+- **`src/diffgeom/config.py`** — `load_config()` and `build_metric()`: YAML config loading, validation, and MetricTensor construction. Reusable by future interfaces (GUI, notebook).
+- **`src/diffgeom/formatting.py`** — `format_tensor()`, `format_scalar()`, `format_metric_summary()`: output formatting for pretty-print and LaTeX. Shows only non-zero components with coordinate-name indices.
+- **`src/diffgeom/cli.py`** — argparse CLI entry point. Thin orchestration: loads config, computes quantities, prints formatted output.
+- **`metrics/`** — example YAML metric configs (Schwarzschild, 2-sphere, 5D Minkowski).
 - **`tests/`** — pytest tests using known exact solutions (Schwarzschild, 2-sphere, flat 5D Minkowski) to verify computations against textbook results.
 
 ## Design Conventions
