@@ -1,0 +1,15 @@
+name: schwarzschild
+coordinates: [t, r, theta, phi]
+assumptions:
+  r_s: {positive: true}
+metric:
+  - [-(1 - r_s/r), 0, 0, 0]
+  - [0, 1/(1 - r_s/r), 0, 0]
+  - [0, 0, r**2, 0]
+  - [0, 0, 0, r**2 * sin(theta)**2]
+compute:
+  - christoffel
+  - riemann: {indices: dddd}
+  - ricci_tensor
+  - ricci_scalar
+  - einstein

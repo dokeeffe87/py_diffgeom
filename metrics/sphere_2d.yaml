@@ -1,0 +1,10 @@
+name: 2-sphere
+coordinates: [theta, phi]
+assumptions:
+  R: {positive: true}
+metric:
+  - [R**2, 0]
+  - [0, R**2 * sin(theta)**2]
+compute:
+  - christoffel
+  - ricci_scalar
