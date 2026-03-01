@@ -3,7 +3,7 @@
 from pathlib import Path
 
 import yaml
-from sympy import Matrix, Symbol
+from sympy import Function, Matrix, Symbol
 from sympy.parsing.sympy_parser import (
     convert_xor,
     implicit_multiplication_application,
@@ -37,6 +37,74 @@ _TRANSFORMATIONS = standard_transformations + (
 )
 
 
+def validate_config(config: dict) -> dict:
+    """Validate and normalize a metric config dictionary.
+
+    Parameters
+    ----------
+    config : dict
+        A raw config dictionary (e.g. from ``yaml.safe_load``).
+
+    Returns
+    -------
+    dict
+        The validated config dictionary with keys: ``name``, ``coordinates``,
+        ``assumptions``, ``metric``, ``compute``.
+
+    Raises
+    ------
+    ValueError
+        If required fields are missing or the metric dimensions are wrong.
+    """
+    if not isinstance(config, dict):
+        raise ValueError("Config must be a YAML mapping.")
+
+    # Required fields
+    if "coordinates" not in config:
+        raise ValueError("Config must include 'coordinates'.")
+    if "metric" not in config:
+        raise ValueError("Config must include 'metric'.")
+
+    coords = config["coordinates"]
+    if not isinstance(coords, list) or len(coords) == 0:
+        raise ValueError("'coordinates' must be a non-empty list.")
+
+    n = len(coords)
+    metric_rows = config["metric"]
+    if not isinstance(metric_rows, list) or len(metric_rows) != n:
+        raise ValueError(
+            f"'metric' must be a {n}x{n} list-of-lists matching "
+            f"the number of coordinates ({n})."
+        )
+    for i, row in enumerate(metric_rows):
+        if not isinstance(row, list) or len(row) != n:
+            raise ValueError(
+                f"Metric row {i} has length {len(row) if isinstance(row, list) else 'N/A'}, "
+                f"expected {n}."
+            )
+
+    # Validate functions field
+    functions = config.get("functions", [])
+    if not isinstance(functions, list):
+        raise ValueError("'functions' must be a list of function names.")
+    for fn in functions:
+        if not isinstance(fn, str):
+            raise ValueError(
+                f"Each entry in 'functions' must be a string, got: {type(fn).__name__}"
+            )
+
+    # Defaults
+    config.setdefault("name", None)
+    config.setdefault("assumptions", {})
+    config.setdefault("functions", [])
+    config.setdefault("compute", list(VALID_QUANTITIES))
+
+    # Normalize compute list into (name, indices_or_None) tuples
+    config["compute"] = _parse_compute_list(config["compute"])
+
+    return config
+
+
 def load_config(path: str | Path) -> dict:
     """Load and validate a metric config from a YAML file.
 
@@ -65,42 +133,7 @@ def load_config(path: str | Path) -> dict:
     with open(path) as f:
         config = yaml.safe_load(f)
 
-    if not isinstance(config, dict):
-        raise ValueError("Config file must contain a YAML mapping.")
-
-    # Required fields
-    if "coordinates" not in config:
-        raise ValueError("Config must include 'coordinates'.")
-    if "metric" not in config:
-        raise ValueError("Config must include 'metric'.")
-
-    coords = config["coordinates"]
-    if not isinstance(coords, list) or len(coords) == 0:
-        raise ValueError("'coordinates' must be a non-empty list.")
-
-    n = len(coords)
-    metric_rows = config["metric"]
-    if not isinstance(metric_rows, list) or len(metric_rows) != n:
-        raise ValueError(
-            f"'metric' must be a {n}x{n} list-of-lists matching "
-            f"the number of coordinates ({n})."
-        )
-    for i, row in enumerate(metric_rows):
-        if not isinstance(row, list) or len(row) != n:
-            raise ValueError(
-                f"Metric row {i} has length {len(row) if isinstance(row, list) else 'N/A'}, "
-                f"expected {n}."
-            )
-
-    # Defaults
-    config.setdefault("name", None)
-    config.setdefault("assumptions", {})
-    config.setdefault("compute", list(VALID_QUANTITIES))
-
-    # Normalize compute list into (name, indices_or_None) tuples
-    config["compute"] = _parse_compute_list(config["compute"])
-
-    return config
+    return validate_config(config)
 
 
 def _parse_compute_list(raw: list) -> list[tuple[str, str | None]]:
@@ -224,6 +257,10 @@ def build_metric(config: dict) -> tuple[MetricTensor, dict[str, Symbol]]:
     for fn_name in ("sin", "cos", "tan", "exp", "sqrt", "log", "asin", "acos", "atan",
                      "sinh", "cosh", "tanh", "pi", "E", "oo"):
         local_dict.setdefault(fn_name, getattr(sympy, fn_name))
+
+    # Register user-declared arbitrary functions (e.g. f, g, h)
+    for fn_name in config.get("functions", []):
+        local_dict.setdefault(fn_name, Function(fn_name))
 
     # Parse metric entries
     rows = []

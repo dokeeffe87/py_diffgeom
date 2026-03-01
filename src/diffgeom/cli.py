@@ -5,6 +5,7 @@ import sys
 
 from diffgeom.config import VALID_QUANTITIES, build_metric, load_config, parse_quantities_flag
 from diffgeom.formatting import format_metric_summary, format_scalar, format_tensor
+from diffgeom.quantities import QUANTITY_MAP, apply_index_spec
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -43,28 +44,6 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-# Maps quantity name -> (MetricTensor attribute, display name, symbol, is_scalar)
-_QUANTITY_MAP = {
-    "christoffel": ("christoffel_second_kind", "Christoffel symbols", "Gamma", False),
-    "riemann": ("riemann_tensor", "Riemann tensor", "R", False),
-    "ricci_tensor": ("ricci_tensor", "Ricci tensor", "R", False),
-    "ricci_scalar": ("ricci_scalar", "Ricci scalar", "R", True),
-    "einstein": ("einstein_tensor", "Einstein tensor", "G", False),
-}
-
-
-def _apply_index_spec(metric, tensor, indices: str):
-    """Raise/lower indices on *tensor* to match the requested *indices* spec."""
-    target = tuple("up" if c == "u" else "down" for c in indices)
-    for i, (current, desired) in enumerate(zip(tensor.index_pos, target)):
-        if current != desired:
-            if desired == "up":
-                tensor = metric.raise_index(tensor, i)
-            else:
-                tensor = metric.lower_index(tensor, i)
-    return tensor
-
-
 def _run_compute(args: argparse.Namespace) -> None:
     config = load_config(args.config)
     metric, symbols_dict = build_metric(config)
@@ -87,14 +66,14 @@ def _run_compute(args: argparse.Namespace) -> None:
 
     # Compute and format each quantity
     for qty_name, indices in quantities:
-        attr_name, display_name, symbol, is_scalar = _QUANTITY_MAP[qty_name]
+        attr_name, display_name, symbol, is_scalar = QUANTITY_MAP[qty_name]
         value = getattr(metric, attr_name)
 
         if is_scalar:
             print(format_scalar(value, display_name, symbol, latex=latex))
         else:
             if indices is not None:
-                value = _apply_index_spec(metric, value, indices)
+                value = apply_index_spec(metric, value, indices)
             print(format_tensor(value, display_name, symbol, coord_names, latex=latex))
         print()
 
