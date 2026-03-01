@@ -4,7 +4,7 @@ from functools import cached_property
 from itertools import product as iproduct
 
 import sympy
-from sympy import Array, Matrix, MutableDenseNDimArray, Symbol, simplify
+from sympy import Array, Eq, Function, Matrix, MutableDenseNDimArray, Symbol, simplify
 
 from diffgeom.tensor import Tensor
 
@@ -238,6 +238,53 @@ class MetricTensor:
                 G[nu, mu] = value
 
         return Tensor(Array(G), ("down", "down"))
+
+    @cached_property
+    def geodesic_equations(self) -> list[Eq]:
+        """Geodesic equations for this metric.
+
+        Builds the system of second-order ODEs:
+            d²x^μ/dλ² + Γ^μ_{αβ} (dx^α/dλ)(dx^β/dλ) = 0
+
+        Returns
+        -------
+        list of sympy.Eq
+            One equation per coordinate, each of the form
+            ``Eq(d²x^μ/dλ² + ..., 0)``.
+        """
+        n = self.dim
+        lam = Symbol("lambda")
+        Gamma = self.christoffel_second_kind
+
+        # Create coordinate functions of the affine parameter
+        coord_funcs = [Function(str(c))(lam) for c in self._coordinates]
+
+        # Substitution map: bare coordinate symbol -> function of λ
+        subs = dict(zip(self._coordinates, coord_funcs))
+
+        equations = []
+        for mu in range(n):
+            # Acceleration term: d²x^μ/dλ²
+            accel = sympy.diff(coord_funcs[mu], lam, 2)
+
+            # Connection term: Γ^μ_{αβ} (dx^α/dλ)(dx^β/dλ)
+            connection_sum = sympy.S.Zero
+            for alpha in range(n):
+                for beta in range(n):
+                    gamma_val = Gamma[mu, alpha, beta]
+                    if gamma_val == 0:
+                        continue
+                    gamma_sub = gamma_val.subs(subs)
+                    connection_sum += (
+                        gamma_sub
+                        * sympy.diff(coord_funcs[alpha], lam)
+                        * sympy.diff(coord_funcs[beta], lam)
+                    )
+
+            lhs = simplify(accel + connection_sum)
+            equations.append(Eq(lhs, 0))
+
+        return equations
 
     def raise_index(self, tensor: Tensor, pos: int) -> Tensor:
         """Raise an index by contracting with the inverse metric g^{μα}.

@@ -8,3 +8,4 @@ metric:
 compute:
   - christoffel
   - ricci_scalar
+  - geodesic

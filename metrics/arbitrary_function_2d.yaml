@@ -9,3 +9,4 @@ compute:
   - riemann
   - ricci_tensor
   - ricci_scalar
+  - geodesic

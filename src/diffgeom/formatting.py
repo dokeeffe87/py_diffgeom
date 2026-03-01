@@ -100,6 +100,41 @@ def format_tensor(
     return "\n".join(lines)
 
 
+def format_geodesic_equations(
+    equations: list,
+    coord_names: list[str],
+    latex: bool = False,
+) -> str:
+    """Format geodesic equations for display.
+
+    Parameters
+    ----------
+    equations : list of sympy.Eq
+        The geodesic equations from ``MetricTensor.geodesic_equations``.
+    coord_names : list of str
+        Coordinate names for labelling each equation.
+    latex : bool
+        If True, use LaTeX formatting.
+
+    Returns
+    -------
+    str
+        The formatted geodesic equations string.
+    """
+    lines = []
+    header = "Geodesic equations (affine parameter: \u03bb):"
+    lines.append(header)
+
+    for coord, eq in zip(coord_names, equations):
+        if latex:
+            eq_str = sympy.latex(eq)
+            lines.append(f"  ${eq_str}$")
+        else:
+            lines.append(f"  {coord}: {eq}")
+
+    return "\n".join(lines)
+
+
 def format_scalar(expr: sympy.Expr, name: str, symbol: str, latex: bool = False) -> str:
     """Format a scalar quantity.
 

@@ -4,7 +4,12 @@ import argparse
 import sys
 
 from diffgeom.config import VALID_QUANTITIES, build_metric, load_config, parse_quantities_flag
-from diffgeom.formatting import format_metric_summary, format_scalar, format_tensor
+from diffgeom.formatting import (
+    format_geodesic_equations,
+    format_metric_summary,
+    format_scalar,
+    format_tensor,
+)
 from diffgeom.quantities import QUANTITY_MAP, apply_index_spec
 
 
@@ -69,7 +74,9 @@ def _run_compute(args: argparse.Namespace) -> None:
         attr_name, display_name, symbol, is_scalar = QUANTITY_MAP[qty_name]
         value = getattr(metric, attr_name)
 
-        if is_scalar:
+        if qty_name == "geodesic":
+            print(format_geodesic_equations(value, coord_names, latex=latex))
+        elif is_scalar:
             print(format_scalar(value, display_name, symbol, latex=latex))
         else:
             if indices is not None:
