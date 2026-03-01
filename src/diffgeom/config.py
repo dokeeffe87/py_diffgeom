@@ -22,7 +22,7 @@ VALID_QUANTITIES = frozenset({
     "geodesic",
 })
 
-# Default index positions for each quantity (None = scalar).
+# Default index positions for each quantity (None = not applicable, e.g. scalar or geodesic).
 DEFAULT_INDEX_POS = {
     "christoffel": "udd",
     "riemann": "uddd",

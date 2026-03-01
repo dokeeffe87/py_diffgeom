@@ -38,7 +38,7 @@ class TestGeodesicSphere:
 
     def test_sphere_geodesic_theta(self, sphere_2d):
         """d²θ/dλ² - sin(θ)cos(θ)(dφ/dλ)² = 0."""
-        metric, params = sphere_2d
+        metric, _ = sphere_2d
         eqs = metric.geodesic_equations
 
         theta_f = Function("theta")(lam)
@@ -53,7 +53,7 @@ class TestGeodesicSphere:
 
     def test_sphere_geodesic_phi(self, sphere_2d):
         """d²φ/dλ² + 2(cos(θ)/sin(θ))(dθ/dλ)(dφ/dλ) = 0."""
-        metric, params = sphere_2d
+        metric, _ = sphere_2d
         eqs = metric.geodesic_equations
 
         theta_f = Function("theta")(lam)

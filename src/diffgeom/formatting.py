@@ -121,6 +121,12 @@ def format_geodesic_equations(
     str
         The formatted geodesic equations string.
     """
+    if len(coord_names) != len(equations):
+        raise ValueError(
+            "coord_names and equations must have the same length "
+            f"(got {len(coord_names)} and {len(equations)})"
+        )
+
     lines = []
     header = "Geodesic equations (affine parameter: \u03bb):"
     lines.append(header)

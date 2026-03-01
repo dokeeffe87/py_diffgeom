@@ -89,8 +89,8 @@ Ricci scalar:
   R = 2/R**2
 
 Geodesic equations (affine parameter: lambda):
-  theta: d^2(theta)/dlambda^2 - sin(2*theta)*d(phi)/dlambda^2/2 = 0
-  phi: d^2(phi)/dlambda^2 + 2*d(phi)/dlambda*d(theta)/dlambda/tan(theta) = 0
+  theta: Eq(-sin(2*theta(lambda))*Derivative(phi(lambda), lambda)**2/2 + Derivative(theta(lambda), (lambda, 2)), 0)
+  phi: Eq(Derivative(phi(lambda), (lambda, 2)) + 2*Derivative(phi(lambda), lambda)*Derivative(theta(lambda), lambda)/tan(theta(lambda)), 0)
 ```
 
 ## Web GUI

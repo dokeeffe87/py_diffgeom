@@ -242,6 +242,23 @@ class TestCLI:
         assert result.returncode == 0
         assert "$" in result.stdout
 
+    def test_compute_geodesic_equations(self):
+        result = subprocess.run(
+            [
+                sys.executable, "-m", "diffgeom.cli",
+                "compute", str(METRICS_DIR / "sphere_2d.yaml"),
+                "--quantities", "geodesic",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        assert result.returncode == 0
+        assert "Geodesic equations" in result.stdout
+        # Should have one equation per coordinate (theta, phi)
+        assert "theta:" in result.stdout
+        assert "phi:" in result.stdout
+
     def test_no_command_shows_help(self):
         result = subprocess.run(
             [sys.executable, "-m", "diffgeom.cli"],
