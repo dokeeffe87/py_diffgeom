@@ -9,6 +9,8 @@ Given a metric tensor defined in a simple YAML file, py_diffgeom computes:
 - **Ricci tensor**
 - **Ricci scalar**
 - **Einstein tensor**
+- **Kretschmann scalar** (curvature invariant for detecting true singularities)
+- **Weyl tensor** (conformal/tidal curvature, trace-free part of Riemann)
 - **Geodesic equations**
 
 All quantities support index raising/lowering, custom index position specs, and output in both pretty-print and LaTeX formats.
@@ -49,6 +51,8 @@ compute:
   - ricci_tensor
   - ricci_scalar
   - einstein
+  - kretschmann
+  - weyl
   - geodesic
 ```
 
@@ -117,7 +121,7 @@ The GUI supports three input modes:
 | `metric` | Yes | n x n list-of-lists of symbolic expressions |
 | `compute` | No | List of quantities to compute (defaults to all). Supports index specs like `riemann: {indices: dddd}` |
 
-Available quantities for `compute`: `christoffel`, `riemann`, `ricci_tensor`, `ricci_scalar`, `einstein`, `geodesic`.
+Available quantities for `compute`: `christoffel`, `riemann`, `ricci_tensor`, `ricci_scalar`, `einstein`, `kretschmann`, `weyl`, `geodesic`.
 
 ### Arbitrary functions
 
@@ -166,6 +170,8 @@ riemann = metric.riemann_tensor               # Tensor with index_pos ('up', 'do
 ricci = metric.ricci_tensor                   # Tensor with index_pos ('down', 'down')
 scalar = metric.ricci_scalar                  # SymPy expression
 einstein = metric.einstein_tensor             # Tensor with index_pos ('down', 'down')
+kretschmann = metric.kretschmann_scalar      # SymPy expression (K = R_{abcd} R^{abcd})
+weyl = metric.weyl_tensor                    # Tensor with index_pos ('up', 'down', 'down', 'down')
 geodesics = metric.geodesic_equations         # List of SymPy equations
 
 # Raise/lower indices
