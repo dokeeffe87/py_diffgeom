@@ -7,6 +7,8 @@ QUANTITY_MAP = {
     "ricci_tensor": ("ricci_tensor", "Ricci tensor", "R", False),
     "ricci_scalar": ("ricci_scalar", "Ricci scalar", "R", True),
     "einstein": ("einstein_tensor", "Einstein tensor", "G", False),
+    "kretschmann": ("kretschmann_scalar", "Kretschmann scalar", "K", True),
+    "weyl": ("weyl_tensor", "Weyl tensor", "C", False),
     "geodesic": ("geodesic_equations", "Geodesic equations", "", False),
 }
 

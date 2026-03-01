@@ -4,7 +4,16 @@ from functools import cached_property
 from itertools import product as iproduct
 
 import sympy
-from sympy import Array, Eq, Function, Matrix, MutableDenseNDimArray, Symbol, simplify
+from sympy import (
+    Array,
+    Eq,
+    Function,
+    Matrix,
+    MutableDenseNDimArray,
+    Rational,
+    Symbol,
+    simplify,
+)
 
 from diffgeom.tensor import Tensor
 
@@ -238,6 +247,76 @@ class MetricTensor:
                 G[nu, mu] = value
 
         return Tensor(Array(G), ("down", "down"))
+
+    @cached_property
+    def kretschmann_scalar(self) -> sympy.Expr:
+        """Kretschmann scalar K = R_{abcd} R^{abcd}."""
+        n = self.dim
+        Riem = self.riemann_tensor
+        # All-down Riemann: lower the first (up) index
+        R_lower = self.lower_index(Riem, 0)
+        # All-up Riemann: raise all four indices of the all-down form
+        R_upper = R_lower
+        for idx in range(4):
+            R_upper = self.raise_index(R_upper, idx)
+        # Contract all four index pairs by direct summation
+        K = sum(
+            R_lower[a, b, c, d] * R_upper[a, b, c, d]
+            for a in range(n)
+            for b in range(n)
+            for c in range(n)
+            for d in range(n)
+        )
+        return simplify(K)
+
+    @cached_property
+    def weyl_tensor(self) -> Tensor:
+        """Weyl conformal tensor C^a_{bcd}. Vanishes identically for n < 3."""
+        n = self.dim
+        if n < 3:
+            return Tensor(
+                Array(MutableDenseNDimArray.zeros(n, n, n, n)),
+                ("up", "down", "down", "down"),
+            )
+
+        Riem = self.riemann_tensor
+        Ric = self.ricci_tensor
+        R = self.ricci_scalar
+        g = self._matrix
+        g_inv = self.inverse
+
+        # Mixed Ricci: R^a_m = g^{ar} R_{rm}
+        Ric_mixed = MutableDenseNDimArray.zeros(n, n)
+        for a in range(n):
+            for m in range(n):
+                Ric_mixed[a, m] = sum(
+                    g_inv[a, r] * Ric[r, m] for r in range(n)
+                )
+
+        delta = sympy.eye(n)
+        coeff1 = Rational(1, n - 2)
+        coeff2 = R * Rational(1, (n - 1) * (n - 2))
+
+        C = MutableDenseNDimArray.zeros(n, n, n, n)
+        for a in range(n):
+            for s in range(n):
+                for mu in range(n):
+                    for nu in range(mu + 1, n):
+                        term = Riem[a, s, mu, nu]
+                        term -= coeff1 * (
+                            delta[a, mu] * Ric[nu, s]
+                            - delta[a, nu] * Ric[mu, s]
+                            - g[s, mu] * Ric_mixed[a, nu]
+                            + g[s, nu] * Ric_mixed[a, mu]
+                        )
+                        term += coeff2 * (
+                            delta[a, mu] * g[nu, s] - delta[a, nu] * g[mu, s]
+                        )
+                        term = simplify(term)
+                        C[a, s, mu, nu] = term
+                        C[a, s, nu, mu] = -term
+
+        return Tensor(Array(C), ("up", "down", "down", "down"))
 
     @cached_property
     def geodesic_equations(self) -> list[Eq]:

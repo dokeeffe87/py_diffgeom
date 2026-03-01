@@ -147,3 +147,80 @@ class TestEinsteinTensor:
         for mu in range(n):
             for nu in range(n):
                 assert simplify(G[mu, nu] - G[nu, mu]) == 0
+
+
+# ---------------------------------------------------------------------------
+# Kretschmann scalar tests
+# ---------------------------------------------------------------------------
+
+
+class TestKretschmannScalar:
+    def test_flat_space_kretschmann_vanishes(self, flat_5d):
+        """K = 0 for flat Minkowski."""
+        assert simplify(flat_5d.kretschmann_scalar) == 0
+
+    def test_sphere_kretschmann(self, sphere_2d):
+        """On a 2-sphere of radius R: K = 4/R^4."""
+        metric, params = sphere_2d
+        R_sym = params["R"]
+        expected = 4 / R_sym**4
+        assert simplify(metric.kretschmann_scalar - expected) == 0
+
+    def test_schwarzschild_kretschmann(self, schwarzschild):
+        """Schwarzschild: K = 12 * r_s^2 / r^6 (r_s = 2M, so 48M^2/r^6)."""
+        metric, params = schwarzschild
+        r_s = params["r_s"]
+        r = params["r"]
+        expected = 12 * r_s**2 / r**6
+        assert simplify(metric.kretschmann_scalar - expected) == 0
+
+
+# ---------------------------------------------------------------------------
+# Weyl tensor tests
+# ---------------------------------------------------------------------------
+
+
+class TestWeylTensor:
+    def test_sphere_2d_weyl_vanishes(self, sphere_2d):
+        """Weyl tensor vanishes identically in 2D (n <= 3)."""
+        metric, _ = sphere_2d
+        W = metric.weyl_tensor
+        n = metric.dim
+        for a in range(n):
+            for b in range(n):
+                for c in range(n):
+                    for d in range(n):
+                        assert W[a, b, c, d] == 0
+
+    def test_flat_space_weyl_vanishes(self, flat_5d):
+        """Weyl tensor vanishes in flat space."""
+        W = flat_5d.weyl_tensor
+        n = flat_5d.dim
+        for a in range(n):
+            for b in range(n):
+                for c in range(n):
+                    for d in range(n):
+                        assert W[a, b, c, d] == 0
+
+    def test_schwarzschild_weyl_equals_riemann(self, schwarzschild):
+        """In vacuum (R_{μν}=0, R=0), Weyl tensor equals Riemann tensor."""
+        metric, _ = schwarzschild
+        W = metric.weyl_tensor
+        Riem = metric.riemann_tensor
+        n = metric.dim
+        for a in range(n):
+            for b in range(n):
+                for c in range(n):
+                    for d in range(n):
+                        assert simplify(W[a, b, c, d] - Riem[a, b, c, d]) == 0
+
+    def test_weyl_antisymmetry_last_two_indices(self, schwarzschild):
+        """C^a_{bcd} = -C^a_{bdc} (antisymmetric in last two indices)."""
+        metric, _ = schwarzschild
+        W = metric.weyl_tensor
+        n = metric.dim
+        for a in range(n):
+            for b in range(n):
+                for c in range(n):
+                    for d in range(n):
+                        assert simplify(W[a, b, c, d] + W[a, b, d, c]) == 0
