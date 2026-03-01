@@ -6,7 +6,12 @@ import streamlit as st
 import yaml
 
 from diffgeom.config import DEFAULT_INDEX_POS, build_metric, load_config, validate_config
-from diffgeom.formatting import format_metric_summary, format_scalar, format_tensor
+from diffgeom.formatting import (
+    format_geodesic_equations,
+    format_metric_summary,
+    format_scalar,
+    format_tensor,
+)
 from diffgeom.quantities import QUANTITY_MAP, apply_index_spec
 
 METRICS_DIR = Path(__file__).resolve().parent.parent.parent / "metrics"
@@ -100,6 +105,28 @@ def _format_assumptions(assumptions: dict) -> str:
     return yaml.dump(assumptions, default_flow_style=True).strip()
 
 
+def _sync_form_state(
+    init_name: str,
+    init_coords: str,
+    init_assumptions: str,
+    init_functions: str,
+    init_metric: list[list[str]] | None,
+) -> None:
+    """Push config values into widget session state keys before widgets render."""
+    st.session_state["_name"] = init_name
+    st.session_state["_coords"] = init_coords
+    st.session_state["_assumptions"] = init_assumptions
+    st.session_state["_functions"] = init_functions
+    # Clear all existing metric keys then write new ones
+    for k in list(st.session_state):
+        if k.startswith("metric_"):
+            del st.session_state[k]
+    if init_metric:
+        for i, row in enumerate(init_metric):
+            for j, val in enumerate(row):
+                st.session_state[f"metric_{i}_{j}"] = val
+
+
 def _run_app():
     st.set_page_config(page_title="diffgeom", page_icon="∇", layout="wide")
     st.title("∇ diffgeom")
@@ -132,6 +159,13 @@ def _run_app():
             init_functions = ", ".join(config.get("functions", []))
             init_metric = [[str(entry) for entry in row] for row in config["metric"]]
 
+            if selected != st.session_state.get("_last_example"):
+                st.session_state["_last_example"] = selected
+                _sync_form_state(
+                    init_name, init_coords, init_assumptions,
+                    init_functions, init_metric,
+                )
+
     elif mode == "Upload YAML":
         uploaded = st.sidebar.file_uploader("Upload a YAML config", type=["yaml", "yml"])
         if uploaded is not None:
@@ -143,6 +177,14 @@ def _run_app():
                 init_assumptions = _format_assumptions(config.get("assumptions", {}))
                 init_functions = ", ".join(config.get("functions", []))
                 init_metric = [[str(entry) for entry in row] for row in config["metric"]]
+
+                upload_key = uploaded.name + str(uploaded.size)
+                if upload_key != st.session_state.get("_last_upload"):
+                    st.session_state["_last_upload"] = upload_key
+                    _sync_form_state(
+                        init_name, init_coords, init_assumptions,
+                        init_functions, init_metric,
+                    )
             except Exception as e:
                 st.sidebar.error(f"Invalid config: {e}")
 
@@ -151,12 +193,13 @@ def _run_app():
 
     col_name, col_coords = st.columns([1, 2])
     with col_name:
-        name = st.text_input("Name (optional)", value=init_name)
+        name = st.text_input("Name (optional)", value=init_name, key="_name")
     with col_coords:
         coords_str = st.text_input(
             "Coordinates (comma-separated)",
             value=init_coords,
             placeholder="t, r, theta, phi",
+            key="_coords",
         )
 
     assumptions_str = st.text_area(
@@ -164,6 +207,7 @@ def _run_app():
         value=init_assumptions,
         placeholder="r_s: {positive: true}",
         height=68,
+        key="_assumptions",
     )
 
     functions_str = st.text_input(
@@ -171,6 +215,7 @@ def _run_app():
         value=init_functions,
         placeholder="f, g, h",
         help="Declare function names used in metric components, e.g. f(x), A(r).",
+        key="_functions",
     )
 
     # Parse coordinates to size the metric grid
@@ -220,8 +265,8 @@ def _run_app():
             checked = st.checkbox(display_name, value=True, key=f"qty_{qty_name}")
             if checked:
                 indices = None
-                if not is_scalar:
-                    default_idx = DEFAULT_INDEX_POS.get(qty_name, "")
+                default_idx = DEFAULT_INDEX_POS.get(qty_name)
+                if not is_scalar and default_idx is not None:
                     idx_input = st.text_input(
                         "Indices",
                         value=default_idx or "",
@@ -272,7 +317,9 @@ def _run_app():
                 with st.spinner(f"Computing {display_name}..."):
                     value = getattr(metric, attr_name)
 
-                if is_scalar:
+                if qty_name == "geodesic":
+                    output = format_geodesic_equations(value, coord_names, latex=True)
+                elif is_scalar:
                     output = format_scalar(value, display_name, symbol, latex=True)
                 else:
                     if indices is not None:

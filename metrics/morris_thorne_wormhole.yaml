@@ -1,0 +1,17 @@
+name: Morris-Thorne Wormhole
+coordinates: [t, l, theta, phi]
+assumptions:
+  b_0: {positive: true}
+  c: {positive: true}
+metric:
+  - [-c**2, 0, 0, 0]
+  - [0, 1, 0, 0]
+  - [0, 0, (b_0**2 + l**2), 0]
+  - [0, 0, 0, (b_0**2 + l**2)*sin(theta)**2]
+compute:
+  - christoffel
+  - riemann: {indices: dddd}
+  - ricci_tensor
+  - ricci_scalar
+  - einstein
+  - geodesic

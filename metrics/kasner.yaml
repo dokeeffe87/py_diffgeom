@@ -11,3 +11,4 @@ compute:
   - ricci_tensor
   - ricci_scalar
   - einstein
+  - geodesic

@@ -19,15 +19,17 @@ VALID_QUANTITIES = frozenset({
     "ricci_tensor",
     "ricci_scalar",
     "einstein",
+    "geodesic",
 })
 
-# Default index positions for each quantity (None = scalar).
+# Default index positions for each quantity (None = not applicable, e.g. scalar or geodesic).
 DEFAULT_INDEX_POS = {
     "christoffel": "udd",
     "riemann": "uddd",
     "ricci_tensor": "dd",
     "einstein": "dd",
     "ricci_scalar": None,
+    "geodesic": None,
 }
 
 # Transformations for parse_expr: standard + implicit multiplication + ^ as **
