@@ -1,0 +1,11 @@
+name: 2D metric with arbitrary function
+coordinates: [t, x]
+functions: [f]
+metric:
+  - [1, 0]
+  - [0, f(x)]
+compute:
+  - christoffel
+  - riemann
+  - ricci_tensor
+  - ricci_scalar

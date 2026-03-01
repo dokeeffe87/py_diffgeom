@@ -35,10 +35,24 @@ YAML config format:
 - `name` (optional): label for the metric
 - `coordinates`: list of coordinate symbol names
 - `assumptions` (optional): dict mapping symbol names to SymPy assumption kwargs (e.g. `positive: true`)
+- `functions` (optional): list of names to treat as arbitrary/undefined functions (e.g. `[f, g]`). Use these in metric components as `f(x)`, `A(r)`, etc. to derive curvature in terms of unspecified functions.
 - `metric`: n×n list-of-lists of symbolic expressions
 - `compute` (optional): list from `christoffel`, `riemann`, `ricci_tensor`, `ricci_scalar`, `einstein`. Defaults to all.
 
 Example configs live in `metrics/`.
+
+## GUI
+
+```bash
+# Install with GUI support
+pip install -e ".[gui]"
+
+# Launch the web GUI
+diffgeom-gui
+# or: streamlit run src/diffgeom/app.py
+```
+
+The Streamlit GUI provides three input modes: example configs from `metrics/`, YAML file upload, and manual entry. Results are rendered as LaTeX.
 
 ## Architecture
 
@@ -47,7 +61,9 @@ Example configs live in `metrics/`.
 - **`src/diffgeom/metric.py`** — `MetricTensor` class: core object that holds a symbolic metric matrix and coordinate symbols. Computes inverse metric, determinant, Christoffel symbols (both kinds), Riemann tensor, Ricci tensor, Ricci scalar, and Einstein tensor — all returned as `Tensor` objects with index metadata. Provides `raise_index()` and `lower_index()` methods for index manipulation.
 - **`src/diffgeom/config.py`** — `load_config()` and `build_metric()`: YAML config loading, validation, and MetricTensor construction. Reusable by future interfaces (GUI, notebook).
 - **`src/diffgeom/formatting.py`** — `format_tensor()`, `format_scalar()`, `format_metric_summary()`: output formatting for pretty-print and LaTeX. Shows only non-zero components with coordinate-name indices.
+- **`src/diffgeom/quantities.py`** — `QUANTITY_MAP` and `apply_index_spec()`: shared definitions used by both CLI and GUI.
 - **`src/diffgeom/cli.py`** — argparse CLI entry point. Thin orchestration: loads config, computes quantities, prints formatted output.
+- **`src/diffgeom/app.py`** — Streamlit web GUI. Provides example loading, YAML upload, and manual metric entry with LaTeX results rendering.
 - **`metrics/`** — example YAML metric configs (Schwarzschild, 2-sphere, 5D Minkowski).
 - **`tests/`** — pytest tests using known exact solutions (Schwarzschild, 2-sphere, flat 5D Minkowski) to verify computations against textbook results.
 
