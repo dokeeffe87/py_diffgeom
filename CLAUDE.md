@@ -37,7 +37,7 @@ YAML config format:
 - `assumptions` (optional): dict mapping symbol names to SymPy assumption kwargs (e.g. `positive: true`)
 - `functions` (optional): list of names to treat as arbitrary/undefined functions (e.g. `[f, g]`). Use these in metric components as `f(x)`, `A(r)`, etc. to derive curvature in terms of unspecified functions.
 - `metric`: n×n list-of-lists of symbolic expressions
-- `compute` (optional): list from `christoffel`, `riemann`, `ricci_tensor`, `ricci_scalar`, `einstein`. Defaults to all.
+- `compute` (optional): list from `christoffel`, `riemann`, `ricci_tensor`, `ricci_scalar`, `einstein`, `kretschmann`, `weyl`, `geodesic`. Defaults to all.
 
 Example configs live in `metrics/`.
 
@@ -58,7 +58,7 @@ The Streamlit GUI provides three input modes: example configs from `metrics/`, Y
 
 - **`src/diffgeom/`** — main package (installed as `diffgeom`)
 - **`src/diffgeom/tensor.py`** — `Tensor` class: lightweight wrapper around `sympy.Array` that tracks index positions (`'up'`/`'down'`). Also provides standalone `trace()` and `contract()` functions for index contraction operations.
-- **`src/diffgeom/metric.py`** — `MetricTensor` class: core object that holds a symbolic metric matrix and coordinate symbols. Computes inverse metric, determinant, Christoffel symbols (both kinds), Riemann tensor, Ricci tensor, Ricci scalar, and Einstein tensor — all returned as `Tensor` objects with index metadata. Provides `raise_index()` and `lower_index()` methods for index manipulation.
+- **`src/diffgeom/metric.py`** — `MetricTensor` class: core object that holds a symbolic metric matrix and coordinate symbols. Computes inverse metric, determinant, Christoffel symbols (both kinds), Riemann tensor, Ricci tensor, Ricci scalar, Einstein tensor, Kretschmann scalar, and Weyl tensor — all returned as `Tensor` objects with index metadata. Provides `raise_index()` and `lower_index()` methods for index manipulation.
 - **`src/diffgeom/config.py`** — `load_config()` and `build_metric()`: YAML config loading, validation, and MetricTensor construction. Reusable by future interfaces (GUI, notebook).
 - **`src/diffgeom/formatting.py`** — `format_tensor()`, `format_scalar()`, `format_metric_summary()`: output formatting for pretty-print and LaTeX. Shows only non-zero components with coordinate-name indices.
 - **`src/diffgeom/quantities.py`** — `QUANTITY_MAP` and `apply_index_spec()`: shared definitions used by both CLI and GUI.
