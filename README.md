@@ -9,6 +9,8 @@ Given a metric tensor defined in a simple YAML file, py_diffgeom computes:
 - **Ricci tensor**
 - **Ricci scalar**
 - **Einstein tensor**
+- **Kretschmann scalar** (curvature invariant for detecting true singularities)
+- **Weyl tensor** (conformal/tidal curvature, trace-free part of Riemann)
 - **Geodesic equations**
 
 All quantities support index raising/lowering, custom index position specs, and output in both pretty-print and LaTeX formats.
@@ -49,6 +51,8 @@ compute:
   - ricci_tensor
   - ricci_scalar
   - einstein
+  - kretschmann
+  - weyl
   - geodesic
 ```
 
@@ -117,7 +121,7 @@ The GUI supports three input modes:
 | `metric` | Yes | n x n list-of-lists of symbolic expressions |
 | `compute` | No | List of quantities to compute (defaults to all). Supports index specs like `riemann: {indices: dddd}` |
 
-Available quantities for `compute`: `christoffel`, `riemann`, `ricci_tensor`, `ricci_scalar`, `einstein`, `geodesic`.
+Available quantities for `compute`: `christoffel`, `riemann`, `ricci_tensor`, `ricci_scalar`, `einstein`, `kretschmann`, `weyl`, `geodesic`.
 
 ### Arbitrary functions
 
@@ -137,6 +141,29 @@ compute:
 
 This is useful for exploring how curvature depends on a general metric function without specifying its form.
 
+### Functions of multiple coordinates
+
+If a function takes multiple arguments (e.g. `r_s(x, y, z)`), the commas inside the function call will conflict with YAML's inline list syntax `[a, b, c]`. To avoid this, use YAML block sequence syntax with quoted strings for any row containing multi-argument function calls:
+
+```yaml
+name: Alcubierre Warp Drive
+coordinates: [t, x, y, z]
+functions: [f, r_s, v_s, x_s]
+metric:
+  - - "-(c**2 - v_s(t)**2 * f(r_s(x - x_s(t), y, z))**2)"
+    - "-v_s(t) * f(r_s(x - x_s(t), y, z))"
+    - 0
+    - 0
+  - - "-v_s(t) * f(r_s(x - x_s(t), y, z))"
+    - 1
+    - 0
+    - 0
+  - [0, 0, 1, 0]
+  - [0, 0, 0, 1]
+```
+
+Each outer `-` is a row and each inner `-` is a component. Rows without commas in expressions can still use inline `[...]` syntax. The two styles can be mixed freely.
+
 ## Example metrics
 
 The `metrics/` directory includes several example configs:
@@ -148,6 +175,7 @@ The `metrics/` directory includes several example configs:
 | `minkowski_flat.yaml` | Flat Minkowski spacetime (5D) |
 | `kasner.yaml` | Kasner cosmological solution (4D) |
 | `morris_thorne_wormhole.yaml` | Morris-Thorne traversable wormhole (4D) |
+| `alcubierre_warp_drive.yaml` | Alcubierre warp drive (4D, nested functions) |
 | `arbitrary_function_2d.yaml` | 2D metric with an unspecified function f(x) |
 
 ## Python API
@@ -166,6 +194,8 @@ riemann = metric.riemann_tensor               # Tensor with index_pos ('up', 'do
 ricci = metric.ricci_tensor                   # Tensor with index_pos ('down', 'down')
 scalar = metric.ricci_scalar                  # SymPy expression
 einstein = metric.einstein_tensor             # Tensor with index_pos ('down', 'down')
+kretschmann = metric.kretschmann_scalar      # SymPy expression (K = R_{abcd} R^{abcd})
+weyl = metric.weyl_tensor                    # Tensor with index_pos ('up', 'down', 'down', 'down')
 geodesics = metric.geodesic_equations         # List of SymPy equations
 
 # Raise/lower indices

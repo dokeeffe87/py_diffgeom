@@ -19,6 +19,8 @@ VALID_QUANTITIES = frozenset({
     "ricci_tensor",
     "ricci_scalar",
     "einstein",
+    "kretschmann",
+    "weyl",
     "geodesic",
 })
 
@@ -29,6 +31,8 @@ DEFAULT_INDEX_POS = {
     "ricci_tensor": "dd",
     "einstein": "dd",
     "ricci_scalar": None,
+    "kretschmann": None,
+    "weyl": "uddd",
     "geodesic": None,
 }
 
