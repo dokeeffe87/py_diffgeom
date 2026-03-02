@@ -36,7 +36,7 @@ YAML config format:
 - `coordinates`: list of coordinate symbol names
 - `assumptions` (optional): dict mapping symbol names to SymPy assumption kwargs (e.g. `positive: true`)
 - `functions` (optional): list of names to treat as arbitrary/undefined functions (e.g. `[f, g]`). Use these in metric components as `f(x)`, `A(r)`, etc. to derive curvature in terms of unspecified functions.
-- `metric`: n×n list-of-lists of symbolic expressions
+- `metric`: n×n list-of-lists of symbolic expressions. **Important:** if expressions contain multi-argument functions (e.g. `f(x, y, z)`), use YAML block sequence syntax with quoted strings instead of inline `[...]` to avoid commas being parsed as list separators.
 - `compute` (optional): list from `christoffel`, `riemann`, `ricci_tensor`, `ricci_scalar`, `einstein`, `kretschmann`, `weyl`, `geodesic`. Defaults to all.
 
 Example configs live in `metrics/`.

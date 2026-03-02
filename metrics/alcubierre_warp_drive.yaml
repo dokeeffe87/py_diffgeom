@@ -1,0 +1,28 @@
+name: Alcubierre Warp Drive
+coordinates: [t, x, y, z]
+assumptions:
+  c: {positive: true}
+functions: [f, r_s, v_s, x_s]
+metric:
+  - - "-(c**2 - v_s(t)**2 * f(r_s(x - x_s(t), y, z))**2)"
+    - "-v_s(t) * f(r_s(x - x_s(t), y, z))"
+    - 0
+    - 0
+  - - "-v_s(t) * f(r_s(x - x_s(t), y, z))"
+    - 1
+    - 0
+    - 0
+  - - 0
+    - 0
+    - 1
+    - 0
+  - - 0
+    - 0
+    - 0
+    - 1
+compute:
+  - christoffel
+  - riemann
+  - ricci_tensor
+  - ricci_scalar
+  - geodesic
