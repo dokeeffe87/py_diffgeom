@@ -8,6 +8,8 @@ import yaml
 from diffgeom.config import DEFAULT_INDEX_POS, build_metric, load_config, validate_config
 from diffgeom.formatting import (
     format_geodesic_equations,
+    format_killing_tensors,
+    format_killing_vectors,
     format_metric_summary,
     format_scalar,
     format_tensor,
@@ -319,6 +321,20 @@ def _run_app():
 
                 if qty_name == "geodesic":
                     output = format_geodesic_equations(value, coord_names, latex=True)
+                elif qty_name == "killing_vectors":
+                    if indices is not None:
+                        value = [
+                            (label, apply_index_spec(metric, vec, indices))
+                            for label, vec in value
+                        ]
+                    output = format_killing_vectors(value, coord_names, latex=True)
+                elif qty_name == "killing_tensors":
+                    if indices is not None:
+                        value = [
+                            (label, apply_index_spec(metric, t, indices))
+                            for label, t in value
+                        ]
+                    output = format_killing_tensors(value, coord_names, latex=True)
                 elif is_scalar:
                     output = format_scalar(value, display_name, symbol, latex=True)
                 else:

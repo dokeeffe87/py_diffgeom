@@ -1,0 +1,16 @@
+name: FLRW
+coordinates: [t, r, theta, phi]
+assumptions:
+  k: {real: true}
+functions: [a]
+metric:
+  - ["-1", "0", "0", "0"]
+  - ["0", "a(t)**2 / (1 - k*r**2)", "0", "0"]
+  - ["0", "0", "a(t)**2 * r**2", "0"]
+  - ["0", "0", "0", "a(t)**2 * r**2 * sin(theta)**2"]
+compute:
+  - christoffel
+  - ricci_tensor
+  - ricci_scalar
+  - einstein
+  - killing_vectors

@@ -141,6 +141,115 @@ def format_geodesic_equations(
     return "\n".join(lines)
 
 
+def format_killing_vectors(
+    vectors: list[tuple[str, "Tensor"]],
+    coord_names: list[str],
+    latex: bool = False,
+) -> str:
+    """Format a list of Killing vectors for display.
+
+    Parameters
+    ----------
+    vectors : list of (str, Tensor)
+        Each entry is (label, vector) as returned by
+        ``MetricTensor.killing_vectors``.
+    coord_names : list of str
+        Coordinate names for index labels.
+    latex : bool
+        If True, use LaTeX formatting.
+
+    Returns
+    -------
+    str
+        The formatted Killing vectors string.
+    """
+    lines = []
+    lines.append(f"Coordinate Killing vectors ({len(vectors)} found):")
+
+    caveat = (
+        "Note: only coordinate symmetries (where the metric is independent of a "
+        "coordinate) are detected. Additional Killing vectors may exist."
+    )
+
+    if not vectors:
+        lines.append("  None identified (no coordinate symmetries).")
+        lines.append(f"  {caveat}")
+        return "\n".join(lines)
+
+    for idx, (label, vec) in enumerate(vectors, 1):
+        n = vec.shape[0]
+        pos = vec.index_pos[0]  # 'up' or 'down'
+        nonzero_parts = []
+        for i in range(n):
+            val = vec[i]
+            if val != 0:
+                nonzero_parts.append((i, val))
+
+        if latex:
+            sep = "^" if pos == "up" else "_"
+            comp_strs = []
+            for i, val in nonzero_parts:
+                coord = _latex_coord(coord_names[i])
+                comp_strs.append(f"\\xi{sep}{{{coord}}} = {sympy.latex(val)}")
+            comp_str = ", \\; ".join(comp_strs)
+            # label is e.g. "∂/∂phi" — extract coord name and LaTeX-ify it
+            coord_name = label.removeprefix("∂/∂")
+            latex_label = f"\\partial/\\partial {_latex_coord(coord_name)}"
+            lines.append(f"  $\\xi^{{({idx})}} = {latex_label}, \\quad {comp_str}$")
+        else:
+            sep = "^" if pos == "up" else "_"
+            comp_strs = []
+            for i, val in nonzero_parts:
+                comp_strs.append(f"ξ{sep}{coord_names[i]} = {val}")
+            comp_str = ", ".join(comp_strs)
+            lines.append(f"  ξ^({idx}) = {label}: {comp_str}")
+
+    lines.append(f"  {caveat}")
+    return "\n".join(lines)
+
+
+def format_killing_tensors(
+    tensors: list[tuple[str, "Tensor"]],
+    coord_names: list[str],
+    latex: bool = False,
+) -> str:
+    """Format a list of Killing tensors for display.
+
+    Parameters
+    ----------
+    tensors : list of (str, Tensor)
+        Each entry is (label, tensor) as returned by
+        ``MetricTensor.killing_tensors``.
+    coord_names : list of str
+        Coordinate names for index labels.
+    latex : bool
+        If True, use LaTeX formatting.
+
+    Returns
+    -------
+    str
+        The formatted Killing tensors string.
+    """
+    lines = []
+    lines.append(f"Killing tensors ({len(tensors)} found):")
+
+    for label, tensor in tensors:
+        if latex:
+            lines.append(f"  $\\mathbf{{{label}}}$:")
+        else:
+            lines.append(f"  {label}:")
+
+        output = format_tensor(
+            tensor, "", "K", coord_names, latex=latex,
+        )
+        # Skip the header line from format_tensor (first line)
+        tensor_lines = output.splitlines()
+        for tline in tensor_lines[1:]:
+            lines.append(f"  {tline}")
+
+    return "\n".join(lines)
+
+
 def format_scalar(expr: sympy.Expr, name: str, symbol: str, latex: bool = False) -> str:
     """Format a scalar quantity.
 
