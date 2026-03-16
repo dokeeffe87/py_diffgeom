@@ -6,6 +6,8 @@ import sys
 from diffgeom.config import VALID_QUANTITIES, build_metric, load_config, parse_quantities_flag
 from diffgeom.formatting import (
     format_geodesic_equations,
+    format_killing_tensors,
+    format_killing_vectors,
     format_metric_summary,
     format_scalar,
     format_tensor,
@@ -76,6 +78,20 @@ def _run_compute(args: argparse.Namespace) -> None:
 
         if qty_name == "geodesic":
             print(format_geodesic_equations(value, coord_names, latex=latex))
+        elif qty_name == "killing_vectors":
+            if indices is not None:
+                value = [
+                    (label, apply_index_spec(metric, vec, indices))
+                    for label, vec in value
+                ]
+            print(format_killing_vectors(value, coord_names, latex=latex))
+        elif qty_name == "killing_tensors":
+            if indices is not None:
+                value = [
+                    (label, apply_index_spec(metric, t, indices))
+                    for label, t in value
+                ]
+            print(format_killing_tensors(value, coord_names, latex=latex))
         elif is_scalar:
             print(format_scalar(value, display_name, symbol, latex=latex))
         else:

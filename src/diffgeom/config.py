@@ -22,6 +22,8 @@ VALID_QUANTITIES = frozenset({
     "kretschmann",
     "weyl",
     "geodesic",
+    "killing_vectors",
+    "killing_tensors",
 })
 
 # Default index positions for each quantity (None = not applicable, e.g. scalar or geodesic).
@@ -34,6 +36,8 @@ DEFAULT_INDEX_POS = {
     "kretschmann": None,
     "weyl": "uddd",
     "geodesic": None,
+    "killing_vectors": "u",
+    "killing_tensors": "dd",
 }
 
 # Transformations for parse_expr: standard + implicit multiplication + ^ as **

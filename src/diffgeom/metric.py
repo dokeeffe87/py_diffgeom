@@ -13,6 +13,7 @@ from sympy import (
     Rational,
     Symbol,
     simplify,
+    trigsimp,
 )
 
 from diffgeom.tensor import Tensor
@@ -402,6 +403,230 @@ class MetricTensor:
         new_pos = list(tensor.index_pos)
         new_pos[pos] = "up"
         return Tensor(Array(result), tuple(new_pos))
+
+    def covariant_derivative(self, tensor: Tensor) -> Tensor:
+        """Compute the covariant derivative ∇_ρ T^{...}_{...}.
+
+        For a tensor of rank r, returns a tensor of rank r+1 with one
+        additional trailing 'down' index (the derivative index ρ).
+
+        For each 'up' index: adds +Γ^a_{ρc} T^{...c...}_{...}
+        For each 'down' index: adds -Γ^c_{ρa} T^{...}_{...c...}
+
+        Parameters
+        ----------
+        tensor : Tensor
+            The tensor to differentiate.
+
+        Returns
+        -------
+        Tensor
+            A new tensor with rank r+1. The last index is the derivative
+            index (down).
+        """
+        n = self.dim
+        r = tensor.rank
+        coords = self._coordinates
+        Gamma = self.christoffel_second_kind
+        old = tensor.components
+        index_pos = tensor.index_pos
+
+        new_shape = tuple(n for _ in range(r + 1))
+        result = MutableDenseNDimArray.zeros(*new_shape)
+
+        for indices in iproduct(range(n), repeat=r + 1):
+            # indices = (i_0, i_1, ..., i_{r-1}, rho)
+            tensor_indices = indices[:-1]
+            rho = indices[-1]
+
+            # Partial derivative term
+            value = sympy.diff(old[tensor_indices], coords[rho])
+
+            # Connection terms for each existing index
+            for k in range(r):
+                if index_pos[k] == "up":
+                    # +Γ^{i_k}_{ρ c} T^{...c...}
+                    for c in range(n):
+                        replaced = tensor_indices[:k] + (c,) + tensor_indices[k + 1 :]
+                        value += Gamma[tensor_indices[k], rho, c] * old[replaced]
+                else:
+                    # -Γ^c_{ρ i_k} T_{...c...}
+                    for c in range(n):
+                        replaced = tensor_indices[:k] + (c,) + tensor_indices[k + 1 :]
+                        value -= Gamma[c, rho, tensor_indices[k]] * old[replaced]
+
+            result[indices] = value
+
+        new_pos = tensor.index_pos + ("down",)
+        return Tensor(Array(result), new_pos)
+
+    @cached_property
+    def killing_vectors(self) -> list[tuple[str, Tensor]]:
+        """Auto-identify coordinate Killing vectors.
+
+        If ∂_i g_{μν} = 0 for all μ,ν, then ∂/∂x^i is a Killing vector.
+
+        Returns
+        -------
+        list of (str, Tensor)
+            Each entry is (label, vector) where label is e.g. "∂/∂t" and
+            vector is a Tensor with index_pos ('up',) and components
+            [0, ..., 1, ..., 0].
+        """
+        n = self.dim
+        g = self._matrix
+        coords = self._coordinates
+        result = []
+
+        for i in range(n):
+            is_killing = True
+            for mu in range(n):
+                for nu in range(mu, n):
+                    if simplify(sympy.diff(g[mu, nu], coords[i])) != 0:
+                        is_killing = False
+                        break
+                if not is_killing:
+                    break
+
+            if is_killing:
+                components = MutableDenseNDimArray.zeros(n)
+                components[i] = 1
+                label = f"∂/∂{coords[i]}"
+                result.append((label, Tensor(Array(components), ("up",))))
+
+        return result
+
+    def is_killing_vector(self, vector) -> bool:
+        """Check if a vector satisfies the Killing equation.
+
+        The Killing equation is:
+            ξ_{(μ;ν)} = ∂_ν ξ_μ + ∂_μ ξ_ν − 2 Γ^σ_{μν} ξ_σ = 0
+
+        Parameters
+        ----------
+        vector : Tensor, list, Array, or Matrix
+            A contravariant vector (components with 'up' index). If not
+            a Tensor, it is treated as contravariant components.
+
+        Returns
+        -------
+        bool
+            True if the vector satisfies the Killing equation.
+        """
+        n = self.dim
+        g = self._matrix
+        coords = self._coordinates
+        Gamma = self.christoffel_second_kind
+
+        # Normalize input to a list of expressions
+        if isinstance(vector, Tensor):
+            if vector.index_pos != ("up",):
+                raise ValueError("Killing vector must have index_pos ('up',).")
+            xi_up = [vector[i] for i in range(n)]
+        elif isinstance(vector, (list, tuple)):
+            xi_up = list(vector)
+        elif isinstance(vector, Array):
+            xi_up = [vector[i] for i in range(n)]
+        elif isinstance(vector, Matrix):
+            xi_up = [vector[i] for i in range(n)]
+        else:
+            raise TypeError(f"Unsupported vector type: {type(vector).__name__}")
+
+        # Lower the index: ξ_μ = g_{μα} ξ^α
+        xi_down = []
+        for mu in range(n):
+            xi_down.append(sum(g[mu, alpha] * xi_up[alpha] for alpha in range(n)))
+
+        # Check Killing equation for all independent (mu, nu) with mu <= nu
+        for mu in range(n):
+            for nu in range(mu, n):
+                # ∂_ν ξ_μ + ∂_μ ξ_ν - 2 Γ^σ_{μν} ξ_σ
+                val = (
+                    sympy.diff(xi_down[mu], coords[nu])
+                    + sympy.diff(xi_down[nu], coords[mu])
+                    - 2 * sum(Gamma[sigma, mu, nu] * xi_down[sigma] for sigma in range(n))
+                )
+                # Try trigsimp first (handles trig identities better before
+                # simplify rewrites them into harder-to-reduce forms)
+                val = trigsimp(val)
+                if val != 0:
+                    val = simplify(val)
+                    if val != 0:
+                        return False
+        return True
+
+    @cached_property
+    def killing_tensors(self) -> list[tuple[str, Tensor]]:
+        """Auto-identify Killing tensors.
+
+        The metric tensor g_{μν} is always a rank-2 Killing tensor.
+
+        Returns
+        -------
+        list of (str, Tensor)
+            Each entry is (label, tensor).
+        """
+        g_tensor = Tensor(Array(self._matrix), ("down", "down"))
+        return [("g (metric)", g_tensor)]
+
+    def is_killing_tensor(self, tensor) -> bool:
+        """Check if a rank-2 symmetric tensor satisfies the Killing tensor equation.
+
+        The Killing tensor equation is:
+            ∇_{(α} K_{βγ)} = 0
+
+        (fully symmetrized covariant derivative vanishes).
+
+        Parameters
+        ----------
+        tensor : Tensor, Matrix, or Array
+            A rank-2 covariant (down, down) tensor.
+
+        Returns
+        -------
+        bool
+            True if the tensor satisfies the Killing tensor equation.
+        """
+        n = self.dim
+        coords = self._coordinates
+        Gamma = self.christoffel_second_kind
+
+        # Normalize to components
+        if isinstance(tensor, Tensor):
+            if tensor.rank != 2:
+                raise ValueError("Killing tensor check requires a rank-2 tensor.")
+            K = tensor.components
+        elif isinstance(tensor, Matrix):
+            K = Array(tensor)
+        elif isinstance(tensor, Array):
+            K = tensor
+        else:
+            raise TypeError(f"Unsupported tensor type: {type(tensor).__name__}")
+
+        # Check ∇_{(α} K_{βγ)} = 0 for all independent (α,β,γ) with α≤β≤γ
+        # ∇_α K_{βγ} = ∂_α K_{βγ} - Γ^σ_{αβ} K_{σγ} - Γ^σ_{αγ} K_{βσ}
+        for alpha in range(n):
+            for beta in range(alpha, n):
+                for gamma in range(beta, n):
+                    # Sum of cyclic permutations: (α,β,γ) + (β,γ,α) + (γ,α,β)
+                    val = sympy.S.Zero
+                    for a, b, c in [
+                        (alpha, beta, gamma),
+                        (beta, gamma, alpha),
+                        (gamma, alpha, beta),
+                    ]:
+                        term = sympy.diff(K[b, c], coords[a])
+                        for sigma in range(n):
+                            term -= Gamma[sigma, a, b] * K[sigma, c]
+                            term -= Gamma[sigma, a, c] * K[b, sigma]
+                        val += term
+
+                    val = trigsimp(val)
+                    if val != 0:
+                        val = simplify(val)
+                        if val != 0:
+                            return False
+        return True
 
     def lower_index(self, tensor: Tensor, pos: int) -> Tensor:
         """Lower an index by contracting with the metric g_{μα}.

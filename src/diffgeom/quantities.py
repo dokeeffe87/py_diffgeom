@@ -10,6 +10,8 @@ QUANTITY_MAP = {
     "kretschmann": ("kretschmann_scalar", "Kretschmann scalar", "K", True),
     "weyl": ("weyl_tensor", "Weyl tensor", "C", False),
     "geodesic": ("geodesic_equations", "Geodesic equations", "", False),
+    "killing_vectors": ("killing_vectors", "Killing vectors", "xi", False),
+    "killing_tensors": ("killing_tensors", "Killing tensors", "K", False),
 }
 
 
