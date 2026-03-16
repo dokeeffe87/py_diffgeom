@@ -6,7 +6,9 @@ import streamlit as st
 import yaml
 
 from diffgeom.config import DEFAULT_INDEX_POS, build_metric, load_config, validate_config
+from diffgeom.expr import ExpressionError, evaluate_expression
 from diffgeom.formatting import (
+    format_expression_result,
     format_geodesic_equations,
     format_killing_tensors,
     format_killing_vectors,
@@ -280,6 +282,19 @@ def _run_app():
                         indices = idx_input
                 selected_quantities.append((qty_name, indices))
 
+    # ── Tensor expressions ──────────────────────────────────────────────
+    st.subheader("Tensor expressions (Einstein summation)")
+    expressions_str = st.text_area(
+        "Expressions (one per line)",
+        placeholder="Ric{_a_b}*Ric{^a^b}\nR^2 - 4*Ric{_a_b}*Ric{^a^b}",
+        height=100,
+        key="_expressions",
+        help=(
+            "Enter tensor expressions using Einstein summation notation. "
+            "Examples: Ric{_a_b}*Ric{^a^b}, R^2, Riem{_a_b_c_d}*Riem{^a^b^c^d}"
+        ),
+    )
+
     # ── Compute ──────────────────────────────────────────────────────────
     st.divider()
 
@@ -361,6 +376,38 @@ def _run_app():
 
             except Exception as e:
                 st.error(f"Error computing {display_name}: {e}")
+
+        # Evaluate tensor expressions
+        expr_lines = [
+            line.strip()
+            for line in expressions_str.splitlines()
+            if line.strip()
+        ]
+        for expr_str in expr_lines:
+            try:
+                with st.spinner(f"Evaluating {expr_str}..."):
+                    result, free_indices = evaluate_expression(expr_str, metric)
+
+                output = format_expression_result(
+                    result, expr_str, coord_names, latex=True
+                )
+                lines = output.splitlines()
+                if lines:
+                    st.markdown(f"#### {lines[0]}")
+                for line in lines[1:]:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    if line.startswith("$") and line.endswith("$"):
+                        st.latex(line[1:-1])
+                    elif line.startswith("All components"):
+                        st.info(line)
+                    else:
+                        st.markdown(line)
+            except ExpressionError as e:
+                st.error(f"Expression error in '{expr_str}': {e}")
+            except Exception as e:
+                st.error(f"Error evaluating '{expr_str}': {e}")
 
 
 # Streamlit runs the file as a script — this block handles both direct
