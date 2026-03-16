@@ -12,6 +12,9 @@ Given a metric tensor defined in a simple YAML file, py_diffgeom computes:
 - **Kretschmann scalar** (curvature invariant for detecting true singularities)
 - **Weyl tensor** (conformal/tidal curvature, trace-free part of Riemann)
 - **Geodesic equations**
+- **Killing vectors** (auto-identification of coordinate symmetries, verification of arbitrary vectors)
+- **Killing tensors** (metric always included, verification of arbitrary rank-2 tensors)
+- **Covariant derivative** (general-purpose ∇_ρ T for any tensor)
 
 All quantities support index raising/lowering, custom index position specs, and output in both pretty-print and LaTeX formats.
 
@@ -54,6 +57,8 @@ compute:
   - kretschmann
   - weyl
   - geodesic
+  - killing_vectors
+  - killing_tensors
 ```
 
 Then compute:
@@ -121,7 +126,7 @@ The GUI supports three input modes:
 | `metric` | Yes | n x n list-of-lists of symbolic expressions |
 | `compute` | No | List of quantities to compute (defaults to all). Supports index specs like `riemann: {indices: dddd}` |
 
-Available quantities for `compute`: `christoffel`, `riemann`, `ricci_tensor`, `ricci_scalar`, `einstein`, `kretschmann`, `weyl`, `geodesic`.
+Available quantities for `compute`: `christoffel`, `riemann`, `ricci_tensor`, `ricci_scalar`, `einstein`, `kretschmann`, `weyl`, `geodesic`, `killing_vectors`, `killing_tensors`.
 
 ### Arbitrary functions
 
@@ -176,6 +181,7 @@ The `metrics/` directory includes several example configs:
 | `kasner.yaml` | Kasner cosmological solution (4D) |
 | `morris_thorne_wormhole.yaml` | Morris-Thorne traversable wormhole (4D) |
 | `alcubierre_warp_drive.yaml` | Alcubierre warp drive (4D, nested functions) |
+| `flrw.yaml` | FLRW cosmological metric (4D, symbolic scale factor and curvature) |
 | `arbitrary_function_2d.yaml` | 2D metric with an unspecified function f(x) |
 
 ## Python API
@@ -197,6 +203,17 @@ einstein = metric.einstein_tensor             # Tensor with index_pos ('down', '
 kretschmann = metric.kretschmann_scalar      # SymPy expression (K = R_{abcd} R^{abcd})
 weyl = metric.weyl_tensor                    # Tensor with index_pos ('up', 'down', 'down', 'down')
 geodesics = metric.geodesic_equations         # List of SymPy equations
+
+# Killing vectors — auto-identified coordinate symmetries
+killing_vecs = metric.killing_vectors         # List of (label, Tensor) pairs
+metric.is_killing_vector([1, 0, 0, 0])       # Verify any vector satisfies Killing equation
+
+# Killing tensors — metric is always included
+killing_tens = metric.killing_tensors         # List of (label, Tensor) pairs
+metric.is_killing_tensor(some_tensor)         # Verify the Killing tensor equation
+
+# Covariant derivative
+nabla_v = metric.covariant_derivative(vec)    # ∇_ρ T, adds one trailing 'down' index
 
 # Raise/lower indices
 riemann_all_down = metric.lower_index(riemann, 0)
