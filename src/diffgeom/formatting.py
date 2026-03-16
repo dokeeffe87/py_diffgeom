@@ -250,6 +250,36 @@ def format_killing_tensors(
     return "\n".join(lines)
 
 
+def format_expression_result(
+    result,
+    name: str,
+    coord_names: list[str],
+    latex: bool = False,
+) -> str:
+    """Format the result of evaluating a tensor expression.
+
+    Parameters
+    ----------
+    result : Tensor or sympy.Expr
+        The evaluation result.
+    name : str
+        Display name for the expression.
+    coord_names : list of str
+        Coordinate names for index labels.
+    latex : bool
+        If True, use LaTeX formatting.
+
+    Returns
+    -------
+    str
+        The formatted result string.
+    """
+    if isinstance(result, Tensor):
+        return format_tensor(result, name, "X", coord_names, latex=latex)
+    # Scalar result
+    return format_scalar(result, name, "expr", latex=latex)
+
+
 def format_scalar(expr: sympy.Expr, name: str, symbol: str, latex: bool = False) -> str:
     """Format a scalar quantity.
 
