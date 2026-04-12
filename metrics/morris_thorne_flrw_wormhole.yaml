@@ -1,0 +1,29 @@
+name: Morris-Thorne FLRW Wormhole
+coordinates: [t, r, theta, phi]
+assumptions:
+  k: {real: true}
+functions: [a, eta, b]
+metric:
+  - - "-exp(2*eta(r, t))"
+    - 0
+    - 0
+    - 0
+  - - 0
+    - "a(t)**2 / (1 - (b(r)/r) - k*r**2)"
+    - 0
+    - 0
+  - - 0
+    - 0
+    - "a(t)**2 * r**2"
+    - 0
+  - - 0
+    - 0
+    - 0
+    - "a(t)**2 * r**2 * sin(theta)**2"
+compute:
+  - christoffel
+  - riemann: {indices: dddd}
+  - ricci_tensor
+  - ricci_scalar
+  - einstein
+  - geodesic
