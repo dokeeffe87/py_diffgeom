@@ -103,10 +103,24 @@ def validate_config(config: dict) -> dict:
                 f"Each entry in 'functions' must be a string, got: {type(fn).__name__}"
             )
 
+    # Validate optional expressions field
+    expressions = config.get("expressions", [])
+    if not isinstance(expressions, list):
+        raise ValueError("'expressions' must be a list of {name, expr} dicts.")
+    for i, entry in enumerate(expressions):
+        if not isinstance(entry, dict):
+            raise ValueError(f"expressions[{i}] must be a dict with 'expr' key.")
+        if "expr" not in entry:
+            raise ValueError(f"expressions[{i}] missing required 'expr' key.")
+        if not isinstance(entry["expr"], str):
+            raise ValueError(f"expressions[{i}]['expr'] must be a string.")
+        entry.setdefault("name", entry["expr"])
+
     # Defaults
     config.setdefault("name", None)
     config.setdefault("assumptions", {})
     config.setdefault("functions", [])
+    config.setdefault("expressions", [])
     config.setdefault("compute", list(VALID_QUANTITIES))
 
     # Normalize compute list into (name, indices_or_None) tuples

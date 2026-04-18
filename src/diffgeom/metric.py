@@ -79,6 +79,16 @@ class MetricTensor:
         return self._matrix[mu, nu]
 
     @cached_property
+    def metric_tensor(self) -> Tensor:
+        """Covariant metric as a Tensor with index_pos ('down', 'down')."""
+        return Tensor(Array(self._matrix), ("down", "down"))
+
+    @cached_property
+    def inverse_metric_tensor(self) -> Tensor:
+        """Contravariant metric as a Tensor with index_pos ('up', 'up')."""
+        return Tensor(Array(self.inverse), ("up", "up"))
+
+    @cached_property
     def inverse(self) -> Matrix:
         """Contravariant metric components g^{μν}."""
         return simplify(self._matrix.inv())

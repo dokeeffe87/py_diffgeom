@@ -1,0 +1,28 @@
+name: Morris-Thorne Wormhole in Schwarschild Coordinates
+coordinates: [t, r, theta, phi]
+functions: [eta, b]
+metric:
+  - - "-exp(2*eta(r, t))"
+    - 0
+    - 0
+    - 0
+  - - 0
+    - "1 / (1 - (b(r)/r))"
+    - 0
+    - 0
+  - - 0
+    - 0
+    - "r**2"
+    - 0
+  - - 0
+    - 0
+    - 0
+    - "r**2 * sin(theta)**2"
+
+compute:
+  - christoffel
+  - riemann: {indices: dddd}
+  - ricci_tensor
+  - ricci_scalar
+  - einstein
+  - geodesic

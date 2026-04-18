@@ -4,7 +4,9 @@ import argparse
 import sys
 
 from diffgeom.config import VALID_QUANTITIES, build_metric, load_config, parse_quantities_flag
+from diffgeom.expr import ExpressionError, evaluate_expression
 from diffgeom.formatting import (
+    format_expression_result,
     format_geodesic_equations,
     format_killing_tensors,
     format_killing_vectors,
@@ -45,6 +47,18 @@ def _build_parser() -> argparse.ArgumentParser:
             "(overrides config). Use name:indices to specify index "
             "positions (e.g. riemann:dddd). Valid: "
             + ", ".join(sorted(VALID_QUANTITIES))
+        ),
+    )
+    compute_parser.add_argument(
+        "--expr",
+        action="append",
+        default=None,
+        dest="expressions",
+        metavar="EXPR",
+        help=(
+            "Tensor expression to evaluate using Einstein summation. "
+            "Can be specified multiple times. "
+            'Example: --expr "Ric{_a_b}*Ric{^a^b}"'
         ),
     )
 
@@ -99,6 +113,25 @@ def _run_compute(args: argparse.Namespace) -> None:
                 value = apply_index_spec(metric, value, indices)
             print(format_tensor(value, display_name, symbol, coord_names, latex=latex))
         print()
+
+    # Evaluate tensor expressions from --expr flags and config
+    all_expressions = []
+    if args.expressions:
+        for expr_str in args.expressions:
+            all_expressions.append({"name": expr_str, "expr": expr_str})
+    for entry in config.get("expressions", []):
+        all_expressions.append(entry)
+
+    for entry in all_expressions:
+        expr_str = entry["expr"]
+        expr_name = entry.get("name", expr_str)
+        try:
+            result, free_indices = evaluate_expression(expr_str, metric)
+            print(format_expression_result(result, expr_name, coord_names, latex=latex))
+            print()
+        except ExpressionError as exc:
+            print(f"Error evaluating '{expr_str}': {exc}", file=sys.stderr)
+            sys.exit(1)
 
 
 def main(argv: list[str] | None = None) -> None:
