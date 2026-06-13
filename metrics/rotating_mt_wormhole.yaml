@@ -1,0 +1,27 @@
+name: Morris-Thorne FLRW Wormhole
+coordinates: [t, r, theta, phi]
+functions: [N, Kappa, omega, b]
+metric:
+  - - "-(N(r,theta)**2 - r**2 * Kappa(r,theta)**2 * omega(r,theta)**2 * sin(theta)**2)"
+    - 0
+    - 0
+    - "-r**2 * sin(theta)**2 * Kappa(r,theta)**2 * omega(r,theta)"
+  - - 0
+    - "1/(1 - b(r,theta)/r)"
+    - 0
+    - 0
+  - - 0
+    - 0
+    - "r**2 * Kappa(r,theta)**2"
+    - 0
+  - - "-r**2 * sin(theta)**2 * Kappa(r,theta)**2 * omega(r,theta)"
+    - 0
+    - 0
+    - "r**2 * sin(theta)**2 * Kappa(r,theta)**2"
+compute:
+  - christoffel
+  - riemann: {indices: dddd}
+  - ricci_tensor
+  - ricci_scalar
+  - einstein
+  - geodesic
