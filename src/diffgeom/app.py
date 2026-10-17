@@ -4,6 +4,7 @@ from pathlib import Path
 
 import streamlit as st
 import yaml
+from sympy import latex
 
 from diffgeom.config import DEFAULT_INDEX_POS, build_metric, load_config, validate_config
 from diffgeom.expr import ExpressionError, evaluate_expression
@@ -258,6 +259,9 @@ def _run_app():
                 row_entries.append(val)
             metric_entries.append(row_entries)
 
+    preview_requested = st.button("Preview metric", key="preview_metric", disabled=(n == 0))
+    metric_preview = st.container()
+
     # ── Quantity selection ────────────────────────────────────────────────
     st.subheader("Quantities to compute")
 
@@ -298,13 +302,14 @@ def _run_app():
     # ── Compute ──────────────────────────────────────────────────────────
     st.divider()
 
-    if st.button("Compute", type="primary", disabled=(n == 0)):
+    compute_requested = st.button("Compute", type="primary", disabled=(n == 0))
+    if preview_requested or compute_requested:
         try:
             config = _build_config_from_form(
                 coords_str, assumptions_str, functions_str, metric_entries, name
             )
         except Exception as e:
-            st.error(f"Config error: {e}")
+            metric_preview.error(f"Config error: {e}")
             return
 
         try:
@@ -312,10 +317,16 @@ def _run_app():
             with st.spinner("Building metric tensor..."):
                 metric, _ = _build_metric_cached(key, config)
         except Exception as e:
-            st.error(f"Error building metric: {e}")
+            metric_preview.error(f"Error building metric: {e}")
             return
 
         coord_names = [str(c) for c in metric.coordinates]
+        metric_preview.markdown("**Metric tensor**")
+        metric_preview.caption(f"Row/column order: ({', '.join(coord_names)})")
+        metric_preview.latex(r"g_{\mu\nu} = " + latex(metric.matrix))
+
+        if not compute_requested:
+            return
 
         # Show metric summary
         summary = format_metric_summary(config, metric, latex=True)
