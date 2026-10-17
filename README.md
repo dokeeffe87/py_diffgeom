@@ -115,6 +115,11 @@ The GUI supports three input modes:
 - **Upload YAML** -- upload your own config file
 - **Manual entry** -- type coordinates and metric components directly in the browser
 
+Click **Preview metric** below the input grid to render the parsed metric as a
+LaTeX matrix, with its row/column coordinate order, without computing curvature.
+The same preview is shown when you click **Compute**. After editing the inputs,
+click either button again to render the updated metric.
+
 ## YAML config format
 
 | Field | Required | Description |
